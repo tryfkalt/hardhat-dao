@@ -19,11 +19,11 @@ export async function propose(args: any[], functionToCall: string, proposalDescr
     // the calldata is the encoded function call
     // the description is the description of the proposal
 
-    const proposeReceipt = await proposeTx.wait(1);
     if (developmentChains.includes(network.name)) {
         await moveBlocks(VOTING_DELAY + 1);
         // VOTING_DELAY is the number of blocks that need to pass before voting can begin
     }
+    const proposeReceipt = await proposeTx.wait(1);
     const proposalId = proposeReceipt.events![0].args!.proposalId;
     // the proposalId is the id of the proposal that was just created
     const proposalState = await governor.state(proposalId);
@@ -32,16 +32,33 @@ export async function propose(args: any[], functionToCall: string, proposalDescr
     // the proposal snapshot is the block number at which the proposal was created
     const proposalDeadline = await governor.proposalDeadline(proposalId);
     // the proposal deadline is the block number at which the proposal will expire
-    console.log(`Current Proposal State: ${proposalState}`);
-    console.log(`Current Proposal Snapshot: ${proposalSnapShot}`);
-    console.log(`Current Proposal Deadline: ${proposalDeadline}`);
-
     // save the proposalId
-    let proposals = JSON.parse(fs.readFileSync(proposalsFile, "utf8"));
-    proposals[network.config.chainId!.toString()].push(proposalId.toString());
-    fs.writeFileSync(proposalsFile, JSON.stringify(proposals));
+    storeProposalId(proposalId);
 
+    // the Proposal State is an enum data type, defined in the IGovernor contract.
+    // 0:Pending, 1:Active, 2:Canceled, 3:Defeated, 4:Succeeded, 5:Queued, 6:Expired, 7:Executed
+    console.log(`Current Proposal State: ${proposalState}`)
+    // What block # the proposal was snapshot
+    console.log(`Current Proposal Snapshot: ${proposalSnapShot}`)
+    // The block number the proposal voting expires
+    console.log(`Current Proposal Deadline: ${proposalDeadline}`)
 }
+
+function storeProposalId(proposalId: any) {
+    const chainId = network.config.chainId!.toString();
+    let proposals: any;
+
+    if (fs.existsSync(proposalsFile)) {
+        proposals = JSON.parse(fs.readFileSync(proposalsFile, "utf8"));
+    } else {
+        proposals = {};
+        proposals[chainId] = [];
+    }
+    proposals[chainId].push(proposalId.toString());
+    fs.writeFileSync(proposalsFile, JSON.stringify(proposals), "utf8");
+}
+
+
 
 propose([NEW_STORE_VALUE], FUNC, PROPOSAL_DESCRIPTION).then(() => process.exit(0)).catch(error => {
     console.error(error);

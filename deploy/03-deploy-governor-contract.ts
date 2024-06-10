@@ -15,7 +15,7 @@ const deployGovernorContract: DeployFunction = async function (hre: HardhatRunti
 
     const governorContract = await deploy("GovernorContract", {
         from: deployer,
-        args: [governanceToken.address, timeLock.address, VOTING_DELAY, VOTING_PERIOD, QUORUM_PERCENTAGE],
+        args: [governanceToken.address, timeLock.address, QUORUM_PERCENTAGE, VOTING_PERIOD, VOTING_DELAY],
         log: true,
         waitConfirmations: networkConfig[network.name].blockConfirmations || 1
     });
